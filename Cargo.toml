@@ -1,0 +1,19 @@
+cargo-features = ["trim-paths"]
+
+[package]
+name = "greenland"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+sudo = "0.6.0"
+gag = "1.0.0"
+
+[profile.release]
+overflow-checks = true
+incremental = true
+codegen-units = 1
+panic = "abort"
+opt-level = 3
+strip = true
+lto = "fat"
