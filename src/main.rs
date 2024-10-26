@@ -23,11 +23,6 @@ fn main() {
     // Variable needed, otherwise it doesn't actually disable it.
     let _gag = Gag::stdout().expect("[ERROR] Failed \"disabling\" stdout!");
     Box::leak(Box::new(Greenland::default())).start();
-
-    // Make Greenland never exit.
-    loop {
-        std::thread::sleep(std::time::Duration::from_secs(60));
-    }
 }
 
 /// Greenland main logic.
@@ -47,12 +42,12 @@ impl Greenland {
         START.call_once(|| {
             self.secs_since_cursor_update.store(1, Ordering::Relaxed);
 
-            std::thread::spawn(|| loop {
+            loop {
                 self.perform_workspace_check();
                 self.perform_hibernation_check();
 
                 std::thread::sleep(std::time::Duration::from_secs(1));
-            });
+            }
         });
     }
 
