@@ -2,7 +2,7 @@ use gag::Gag;
 use std::{ffi::CString, sync::Once};
 
 extern "C" {
-    /// C `system("echo \"Hello World!\"")` bind.
+    /// https://en.cppreference.com/w/cpp/utility/program/system
     fn system(cmd: *const i8) -> i32;
 }
 
@@ -22,11 +22,10 @@ fn main() {
 /// Greenland main logic.
 #[derive(Default)]
 pub struct Greenland {
-    /// Seconds elapsed since the last cursor position update.
-    secs_since_cursor_update: u32,
-
-    /// Last `hyprctl cursorpos` output.
-    last_cursor_pos: String,
+    /// Holds the information about the cursor.
+    /// 0 -> Time (in seconds) since the cursor was last moved.
+    /// 1 -> The last-captured `hyprctl cursorpos` output.
+    cursor_information: (u32, String),
 }
 
 impl Greenland {
@@ -34,7 +33,7 @@ impl Greenland {
     pub fn start(&mut self) {
         static START: Once = Once::new();
         START.call_once(|| {
-            self.secs_since_cursor_update = 1;
+            self.cursor_information.0 = 1;
 
             loop {
                 self.perform_workspace_check();
@@ -62,12 +61,12 @@ impl Greenland {
     /// Performs the hibernation check, which keeps track of the cursor position through `hyprctl`.
     /// If it hasn't moved after a certain period of time, hibernation is activated.
     fn perform_hibernation_check(&mut self) {
-        self.secs_since_cursor_update += 1;
+        self.cursor_information.0 += 1;
         if !self.has_cursor_moved() {
             self.try_hibernate();
         } else {
-            // Reset `secs_since_cursor_update` as the cursor was moved.
-            self.secs_since_cursor_update = 1;
+            // Reset the seconds since the cursor was moved.
+            self.cursor_information.0 = 1;
         }
     }
 
@@ -80,7 +79,7 @@ impl Greenland {
         let warning_secs = if self.has_windows() { 1500 } else { 300 };
         let hibernate_secs = if self.has_windows() { 1800 } else { 600 };
 
-        if self.secs_since_cursor_update == warning_secs {
+        if self.cursor_information.0 == warning_secs {
             // Not a good workaround, but it'll do for now as sudo breaks regular notify-send.
             unsafe {
                 system(
@@ -90,20 +89,19 @@ impl Greenland {
             return;
         }
 
-        if self.secs_since_cursor_update == hibernate_secs {
-            self.secs_since_cursor_update = 1;
+        if self.cursor_information.0 == hibernate_secs {
+            self.cursor_information.0 = 1;
             unsafe { system(c"systemctl suspend".as_ptr()) };
         }
     }
 
-    /// Takes `self.last_cursor_pos` as mutable String reference, clones it and updates the
-    /// mutable references value to the current cursor position.
+    /// Clones `self.last_cursor_pos` and updates the real value to the current cursor position.
     /// Then checks if the two values are identical and returns the result.
     fn has_cursor_moved(&mut self) -> bool {
-        let last_cursor_pos_clone = self.last_cursor_pos.to_owned();
-        self.last_cursor_pos =
+        let last_cursor_pos_clone = self.cursor_information.1.to_owned();
+        self.cursor_information.1 =
             Self::execute("hyprctl cursorpos").expect("[ERROR] Failed getting cursor position!");
-        self.last_cursor_pos != last_cursor_pos_clone
+        self.cursor_information.1 != last_cursor_pos_clone
     }
 
     /// Checks if the workspace has any windows present.
