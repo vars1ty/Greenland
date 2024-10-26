@@ -83,7 +83,7 @@ impl Greenland {
             // Not a good workaround, but it'll do for now as sudo breaks regular notify-send.
             unsafe {
                 system(
-                    cr#"hyprctl dispatch exec 'notify-send -u critical "Greenland" "Putting PC into hibernation in 5 minutes, move your cursor to prevent it!"'"#.as_ptr() as _,
+                    cr#"hyprctl dispatch exec 'notify-send -u critical -t 300000 "Greenland" "Putting PC into hibernation in 5 minutes, move your cursor to prevent it!"'"#.as_ptr() as _,
                 )
             };
             return;
