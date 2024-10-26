@@ -16,7 +16,7 @@ fn main() {
 
     // Variable needed, otherwise it doesn't actually disable it.
     let _gag = Gag::stdout().expect("[ERROR] Failed \"disabling\" stdout!");
-    Box::leak(Box::new(Greenland::default())).start();
+    Greenland::default().start();
 }
 
 /// Greenland main logic.
@@ -63,7 +63,7 @@ impl Greenland {
     /// If it hasn't moved after a certain period of time, hibernation is activated.
     fn perform_hibernation_check(&mut self) {
         self.secs_since_cursor_update += 1;
-        if !Self::has_cursor_moved(&mut self.last_cursor_pos) {
+        if !self.has_cursor_moved() {
             self.try_hibernate();
         } else {
             // Reset `secs_since_cursor_update` as the cursor was moved.
@@ -99,11 +99,11 @@ impl Greenland {
     /// Takes `self.last_cursor_pos` as mutable String reference, clones it and updates the
     /// mutable references value to the current cursor position.
     /// Then checks if the two values are identical and returns the result.
-    fn has_cursor_moved(last_cursor_pos: &mut String) -> bool {
-        let last_cursor_pos_clone = last_cursor_pos.to_owned();
-        *last_cursor_pos =
+    fn has_cursor_moved(&mut self) -> bool {
+        let last_cursor_pos_clone = self.last_cursor_pos.to_owned();
+        self.last_cursor_pos =
             Self::execute("hyprctl cursorpos").expect("[ERROR] Failed getting cursor position!");
-        *last_cursor_pos != last_cursor_pos_clone
+        self.last_cursor_pos != last_cursor_pos_clone
     }
 
     /// Checks if the workspace has any windows present.
